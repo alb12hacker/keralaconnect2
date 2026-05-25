@@ -1,0 +1,122 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    // Validation Helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['email']) &&
+             data.email is string && data.email.size() <= 100 &&
+             data.get('displayName', '') is string &&
+             data.get('photoURL', '') is string &&
+             data.get('theme', 'system') in ['light', 'dark', 'system'];
+    }
+
+    function isValidSavedRoute(data) {
+      return data.keys().hasAll(['routeId', 'routeName', 'type']) &&
+             data.routeId is string && data.routeId.size() <= 50 &&
+             data.routeName is string && data.routeName.size() <= 100 &&
+             data.type in ["school", "college", "tuition", "work", "general"];
+    }
+
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['id', 'type', 'routeNumber', 'routeName', 'lat', 'lng', 'heading', 'speed', 'crowdLevel', 'status', 'lastUpdated']) &&
+             data.get('driverId', '') is string &&
+             data.id is string &&
+             data.type in ["bus", "ferry"] &&
+             data.routeNumber is string &&
+             data.routeName is string &&
+             data.lat is number &&
+             data.lng is number &&
+             data.heading is number && 
+             data.speed is number &&
+             data.crowdLevel in ["empty", "moderate", "crowded", "full"] &&
+             data.status in ["active", "delayed", "inactive"] &&
+             data.lastUpdated is string;
+    }
+
+    function isValidCommunityPost(data) {
+      return data.keys().hasAll(['title', 'content', 'authorId', 'type']) &&
+             data.title is string &&
+             data.content is string &&
+             data.authorId is string &&
+             data.type in ["Food", "Adventure", "Viewpoint", "Culture", "Transit"];
+    }
+
+    function isValidPostReply(data) {
+      return data.keys().hasAll(['postId', 'authorId', 'content']) &&
+             data.postId is string &&
+             data.authorId is string &&
+             data.content is string;
+    }
+
+
+    // 1. Users Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false; // No blanket listing of users
+      
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && 
+                       isValidUser(incoming());
+      
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId &&
+                       isValidUser(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'theme', 'updatedAt']);
+                       
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      // 1.1 Saved Routes Subcollection
+      match /savedRoutes/{routeId} {
+        allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidId(routeId);
+        allow list: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+        
+        allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && 
+                         isValidId(routeId) && isValidSavedRoute(incoming());
+                         
+        allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidId(routeId) &&
+                         isValidSavedRoute(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['routeName', 'type']);
+                         
+        allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidId(routeId);
+      }
+    }
+
+    // 2. Vehicles Collection (Global, live tracking)
+    match /vehicles/{vehicleId} {
+      allow read: if isSignedIn();
+      
+      allow write: if isSignedIn() && isValidVehicle(incoming());
+      
+      match /{document=**} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    // 3. Community Posts
+    match /community_posts/{postId} {
+      allow read: if true; // Allow anyone to read
+      allow create: if isSignedIn() && isValidCommunityPost(incoming()) && incoming().authorId == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+
+    // 4. Post Replies
+    match /post_replies/{replyId} {
+      allow read: if true; // Allow anyone to read
+      allow create: if isSignedIn() && isValidPostReply(incoming()) && incoming().authorId == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && existing().authorId == request.auth.uid;
+    }
+  }
+}

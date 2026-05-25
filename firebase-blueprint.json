@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and preferences.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "theme": { "type": "string", "enum": ["light", "dark", "system"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "A live transit vehicle (bus, ferry).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["bus", "ferry"] },
+        "routeNumber": { "type": "string" },
+        "routeName": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "heading": { "type": "number" },
+        "speed": { "type": "number" },
+        "crowdLevel": { "type": "string", "enum": ["empty", "moderate", "crowded", "full"] },
+        "status": { "type": "string", "enum": ["active", "delayed", "inactive"] },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "type", "routeNumber", "lat", "lng", "heading"]
+    },
+    "UserSavedRoute": {
+      "title": "User Saved Route",
+      "description": "A route saved by the user for quick access.",
+      "type": "object",
+      "properties": {
+        "routeId": { "type": "string" },
+        "routeName": { "type": "string" },
+        "type": { "type": "string", "enum": ["school", "college", "tuition", "work", "general"] },
+        "savedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["routeId", "routeName", "type"]
+    },
+    "CommunityPost": {
+      "title": "Community Post",
+      "description": "User created community post.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "type": { "type": "string", "enum": ["Food", "Adventure", "Viewpoint", "Culture", "Transit"] },
+        "locationName": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "rating": { "type": "number" },
+        "upvotes": { "type": "number" },
+        "upvotedBy": { "type": "array", "items": { "type": "string" } },
+        "downvotes": { "type": "number" },
+        "mediaUrls": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "repliesCount": { "type": "number" }
+      },
+      "required": ["title", "content", "authorId", "type"]
+    },
+    "PostReply": {
+      "title": "Post Reply",
+      "description": "A reply to a community post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "upvotes": { "type": "number" },
+        "upvotedBy": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["postId", "authorId", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/users/{userId}/savedRoutes/{routeId}": {
+      "schema": { "$ref": "#/entities/UserSavedRoute" },
+      "description": "User's saved routes"
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": { "$ref": "#/entities/Vehicle" },
+      "description": "Live tracking data of vehicles"
+    },
+    "/community_posts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Community posts"
+    },
+    "/post_replies/{replyId}": {
+      "schema": { "$ref": "#/entities/PostReply" },
+      "description": "Replies to community posts"
+    }
+  }
+}

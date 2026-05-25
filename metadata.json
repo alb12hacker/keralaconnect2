@@ -1,0 +1,9 @@
+{
+  "name": "Remix: Remix: Remix: Remix: KeralaConnect",
+  "description": "Next-gen realtime Kerala transit super-app with live tracking, weather intelligence, and cinematic UI.",
+  "requestFramePermissions": [
+    "geolocation",
+    "screen-wake-lock"
+  ],
+  "majorCapabilities": []
+}
